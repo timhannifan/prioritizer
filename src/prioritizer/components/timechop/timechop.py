@@ -1,8 +1,8 @@
 import itertools
 import logging
 
-from datetime_util import convert_str_to_relativedelta, dt_from_str
-from structs import AsOfTimeList
+from prioritizer.utils.datetime_util import convert_str_to_relativedelta, dt_from_str
+from prioritizer.utils.structs import AsOfTimeList
 
 from . import utils
 

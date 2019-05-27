@@ -3,3 +3,5 @@ __pycache__/
 lib/__pycache__/
 .DS_Store
 components/config/experiment.yaml
+*.egg-info
+dist/*

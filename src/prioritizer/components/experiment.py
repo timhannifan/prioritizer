@@ -1,11 +1,8 @@
 import sys
 import random
 
-sys.path.append('./timechop')
-
-from timechop import Timechop
-# sys.path.append('./utils')
-import dbutil
+from prioritizer.components.timechop import Timechop
+import prioritizer.utils.dbutil
 
 
 class Experiment():
@@ -98,7 +95,7 @@ class Experiment():
 
         self.chopper = Timechop(**split_config)
 
-        
+
         # print(self.cohort_hash_xxx())
         cohort_config = self.config.get("cohort_config", {})
         if "query" in cohort_config:
