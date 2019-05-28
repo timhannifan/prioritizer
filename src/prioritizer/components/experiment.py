@@ -2,7 +2,15 @@ import sys
 import random
 
 from prioritizer.components.timechop import Timechop
+from prioritizer.components.entity_date_table_generators import EntityDateTableGenerator
 import prioritizer.utils.dbutil
+
+from prioritizer.utils.dbutil import filename_friendly_hash
+# from prioritizer.utils.rwdb import fuck
+
+
+# def filename_friendly_hash(x):
+#     print('FUCK')
 
 
 class Experiment():
@@ -57,7 +65,7 @@ class Experiment():
         #     self.project_storage, matrix_storage_class
         # )
         self.project_path = '../results'
-        # self.replace = replace
+        self.replace = True
         self.save_predictions = save_predictions
         self.skip_validation = skip_validation
         self.db_engine = db_engine
@@ -94,10 +102,8 @@ class Experiment():
         split_config = self.config["temporal_config"]
 
         self.chopper = Timechop(**split_config)
-
-
-        # print(self.cohort_hash_xxx())
         cohort_config = self.config.get("cohort_config", {})
+
         if "query" in cohort_config:
             self.cohort_table_name = "cohort_{}_{}".format(
                 cohort_config.get('name', 'default'),
@@ -733,3 +739,7 @@ class Experiment():
             raise
 
     __call__ = run
+
+
+
+
