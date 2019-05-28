@@ -3,16 +3,31 @@ import random
 
 from prioritizer.components.timechop import Timechop
 from prioritizer.components.entity_date_table_generators import EntityDateTableGenerator
-import prioritizer.utils.dbutil
 
-from prioritizer.utils.dbutil import filename_friendly_hash
-# from prioritizer.utils.rwdb import fuck
+from prioritizer.utils.dbutil import (
+    filename_friendly_hash,
+    save_experiment_and_get_hash
+)
+from prioritizer.components.label_generators import (
+    LabelGenerator,
+    DEFAULT_LABEL_NAME
+)
+from prioritizer.components.feature_dictionary_creator import FeatureDictionaryCreator
+from prioritizer.components.feature_generators import FeatureGenerator
+from prioritizer.components.feature_group_generators import FeatureGroupCreator
+from prioritizer.components.feature_group_mixer import FeatureGroupMixer
+from prioritizer.components.planner import Planner
+from prioritizer.components.builders import MatrixBuilder
+from prioritizer.utils.conf import dt_from_str, parse_from_obj
 
+from prioritizer.components.storage import (
+    CSVMatrixStore,
+    ModelStorageEngine,
+    ProjectStorage,
+    MatrixStorageEngine,
+)
 
-# def filename_friendly_hash(x):
-#     print('FUCK')
-
-
+from prioritizer.components.storage import CSVMatrixStore
 class Experiment():
     """The base class for all Experiments.
 
@@ -40,8 +55,8 @@ class Experiment():
         self,
         config,
         db_engine,
-        project_path=None,
-        # matrix_storage_class=CSVMatrixStore,
+        project_path='/output',
+        matrix_storage_class=CSVMatrixStore,
         # replace=True,
         # cleanup=False,
         # cleanup_timeout=None,
@@ -55,25 +70,29 @@ class Experiment():
         #     self.__class__,
         #     **{key: value for (key, value) in locals().items() if key not in {'db_engine', 'config', 'self'}}
         # )
-
+        self.materialize_subquery_fromobjs = True
+        self.features_ignore_cohort = False
         self.config = config
         random.seed(config['random_seed'])
 
-        # self.project_storage = ProjectStorage(project_path)
-        # self.model_storage_engine = ModelStorageEngine(self.project_storage)
-        # self.matrix_storage_engine = MatrixStorageEngine(
-        #     self.project_storage, matrix_storage_class
-        # )
-        self.project_path = '../results'
+        self.project_storage = ProjectStorage(project_path)
+        self.model_storage_engine = ModelStorageEngine(self.project_storage)
+        self.matrix_storage_engine = MatrixStorageEngine(
+            self.project_storage, matrix_storage_class
+        )
+        self.project_path = project_path
         self.replace = True
         self.save_predictions = save_predictions
         self.skip_validation = skip_validation
         self.db_engine = db_engine
 
         self.features_schema_name = "features"
+        self.labels_table_name = "labels"
+        self.cohort_table_name = "labels"
         self.cohort_hash = '13451345'
 
-        # self.experiment_hash = save_experiment_and_get_hash(self.config, self.db_engine)
+        self.experiment_hash = save_experiment_and_get_hash(self.config, self.db_engine)
+        print('EXP HASH', self.experiment_hash)
         # self.run_id = initialize_tracking_and_get_run_id(
         #     self.experiment_hash,
         #     experiment_class_path=classpath(self.__class__),
@@ -105,7 +124,7 @@ class Experiment():
         cohort_config = self.config.get("cohort_config", {})
 
         if "query" in cohort_config:
-            self.cohort_table_name = "cohort_{}_{}".format(
+            self.cohor_table_name = "cohort_{}_{}".format(
                 cohort_config.get('name', 'default'),
                 'self.cohort_hash'
             )
@@ -145,26 +164,6 @@ class Experiment():
             logging.warning(
                 "label_config missing or unrecognized. Without labels, "
                 "you will not be able to make matrices."
-            )
-
-        if "bias_audit_config" in self.config:
-            bias_config = self.config["bias_audit_config"]
-            self.bias_hash = filename_friendly_hash(bias_config)
-            self.protected_groups_table_name = f"protected_groups_{self.bias_hash}"
-            self.protected_groups_generator = ProtectedGroupsGenerator(
-                db_engine=self.db_engine,
-                from_obj=parse_from_obj(bias_config, 'bias_from_obj'),
-                attribute_columns=bias_config.get("attribute_columns", None),
-                entity_id_column=bias_config.get("entity_id_column", None),
-                knowledge_date_column=bias_config.get("knowledge_date_column", None),
-                protected_groups_table_name=self.protected_groups_table_name,
-                replace=self.replace
-            )
-        else:
-            self.protected_groups_generator = ProtectedGroupsGeneratorNoOp()
-            logging.warning(
-                "bias_audit_config missing or unrecognized. Without protected groups, "
-                "you will not audit your models for bias and fairness."
             )
 
         self.feature_dictionary_creator = FeatureDictionaryCreator(

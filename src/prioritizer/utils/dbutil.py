@@ -14,7 +14,7 @@ from retrying import retry
 from sqlalchemy.orm import sessionmaker
 from ohio import PipeTextIO
 
-from triage.component.results_schema import (
+from prioritizer.components.schemas import (
     Experiment,
     Matrix,
     Model,
@@ -57,7 +57,7 @@ DEFAULT_RETRY_KWARGS = {
 db_retry = retry(**DEFAULT_RETRY_KWARGS)
 
 
-@db_retry
+# @db_retry
 def save_experiment_and_get_hash(config, db_engine):
     experiment_hash = filename_friendly_hash(config)
     session = sessionmaker(bind=db_engine)()

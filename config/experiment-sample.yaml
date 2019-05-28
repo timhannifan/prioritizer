@@ -1,6 +1,8 @@
 model_comment: 'experiment_sample'
 db_user: 'xxxx'
 db_password: 'xxxx'
+db_name: 'xxxx'
+
 
 random_seed: 23895478
 
