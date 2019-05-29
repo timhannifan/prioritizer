@@ -367,7 +367,7 @@ class ExperimentRun(Base):
     start_time = Column(DateTime)
     start_method = Column(String)
     git_hash = Column(String)
-    triage_version = Column(String)
+    # version = Column(String)
     experiment_hash = Column(
         String,
         ForeignKey("model_metadata.experiments.experiment_hash")

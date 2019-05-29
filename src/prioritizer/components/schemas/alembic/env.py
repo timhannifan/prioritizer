@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import pool
 from sqlalchemy.engine.url import URL
 
-from triage.component.results_schema import Base
+from prioritizer.components.schemas import Base
 
 
 # this is the Alembic Config object, which provides

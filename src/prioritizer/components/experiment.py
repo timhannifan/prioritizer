@@ -1,6 +1,6 @@
 import sys
 import random
-
+import logging
 from prioritizer.components.timechop import Timechop
 from prioritizer.components.entity_date_table_generators import EntityDateTableGenerator
 
@@ -19,13 +19,26 @@ from prioritizer.components.feature_group_mixer import FeatureGroupMixer
 from prioritizer.components.planner import Planner
 from prioritizer.components.builders import MatrixBuilder
 from prioritizer.utils.conf import dt_from_str, parse_from_obj
-
+from prioritizer.utils.random import bind_kwargs, classpath
+from prioritizer.tracking import initialize_tracking_and_get_run_id
 from prioritizer.components.storage import (
     CSVMatrixStore,
     ModelStorageEngine,
     ProjectStorage,
     MatrixStorageEngine,
 )
+
+from prioritizer.components.modeler import Subsetter, ModelTrainer, ModelGrouper, Predictor, ModelTrainTester
+from prioritizer.components import schemas
+from prioritizer.components.validate import ExperimentValidator
+# from prioritizer.components.modeler import Subsetter
+    # ModelEvaluator,
+    # # Predictor,
+    # # IndividualImportanceCalculator,
+    # ModelGrouper,
+    # ModelTrainTester,
+    # Subsetter
+# )
 
 from prioritizer.components.storage import CSVMatrixStore
 class Experiment():
@@ -66,10 +79,10 @@ class Experiment():
         save_predictions=True,
         skip_validation=False,
         ):
-        # experiment_kwargs = bind_kwargs(
-        #     self.__class__,
-        #     **{key: value for (key, value) in locals().items() if key not in {'db_engine', 'config', 'self'}}
-        # )
+        experiment_kwargs = bind_kwargs(
+            self.__class__,
+            **{key: value for (key, value) in locals().items() if key not in {'db_engine', 'config', 'self'}}
+        )
         self.materialize_subquery_fromobjs = True
         self.features_ignore_cohort = False
         self.config = config
@@ -92,14 +105,24 @@ class Experiment():
         self.cohort_hash = '13451345'
 
         self.experiment_hash = save_experiment_and_get_hash(self.config, self.db_engine)
-        print('EXP HASH', self.experiment_hash)
-        # self.run_id = initialize_tracking_and_get_run_id(
-        #     self.experiment_hash,
-        #     experiment_class_path=classpath(self.__class__),
-        #     experiment_kwargs=experiment_kwargs,
-        #     db_engine=self.db_engine
-        # )
+
+        self.run_id = initialize_tracking_and_get_run_id(
+            self.experiment_hash,
+            experiment_class_path=classpath(self.__class__),
+            experiment_kwargs=experiment_kwargs,
+            db_engine=self.db_engine
+        )
         self.initialize_components()
+
+        self.profile = False
+        logging.info("Generate profiling stats? (profile option): %s", self.profile)
+
+        self.cleanup =True
+        logging.info(
+            "cleanup is set to True, so intermediate tables (labels and cohort) "
+            "will be removed after matrix creation and subset tables will be "
+            "removed after model training and testing"
+        )
 
     def process_query_tasks(self, query_tasks):
         # self.feature_generator.process_table_tasks(query_tasks)
@@ -237,24 +260,24 @@ class Experiment():
             rank_order=self.config.get("prediction", {}).get("rank_tiebreaker", "worst"),
         )
 
-        self.individual_importance_calculator = IndividualImportanceCalculator(
-            db_engine=self.db_engine,
-            n_ranks=self.config.get("individual_importance", {}).get("n_ranks", 5),
-            methods=self.config.get("individual_importance", {}).get("methods", ["uniform"]),
-            replace=self.replace,
-        )
+        # self.individual_importance_calculator = IndividualImportanceCalculator(
+        #     db_engine=self.db_engine,
+        #     n_ranks=self.config.get("individual_importance", {}).get("n_ranks", 5),
+        #     methods=self.config.get("individual_importance", {}).get("methods", ["uniform"]),
+        #     replace=self.replace,
+        # )
 
-        self.evaluator = ModelEvaluator(
-            db_engine=self.db_engine,
-            testing_metric_groups=self.config.get("scoring", {}).get("testing_metric_groups", []),
-            training_metric_groups=self.config.get("scoring", {}).get("training_metric_groups", []),
-        )
+        # self.evaluator = ModelEvaluator(
+        #     db_engine=self.db_engine,
+        #     testing_metric_groups=self.config.get("scoring", {}).get("testing_metric_groups", []),
+        #     training_metric_groups=self.config.get("scoring", {}).get("training_metric_groups", []),
+        # )
 
         self.model_train_tester = ModelTrainTester(
             matrix_storage_engine=self.matrix_storage_engine,
-            model_evaluator=self.evaluator,
+            # model_evaluator=self.evaluator,
             model_trainer=self.trainer,
-            individual_importance_calculator=self.individual_importance_calculator,
+            # individual_importance_calculator=self.individual_importance_calculator,
             predictor=self.predictor,
             subsets=self.subsets,
         )
@@ -721,11 +744,6 @@ class Experiment():
                          "in cProfile format.",
                          store)
 
-    # def cohort_hash_xxx(self):
-    #     if "query" in self.config.get("cohort_config", {}):
-    #         return filename_friendly_hash(self.config["cohort_config"]["query"])
-    #     else:
-    #         return None
     # @experiment_entrypoint
     def run(self):
         try:

@@ -7,13 +7,12 @@ import logging
 import random
 from itertools import chain
 from functools import partial
-
 import postgres_copy
 import sqlalchemy
 from retrying import retry
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from ohio import PipeTextIO
-
+from contextlib import contextmanager
 from prioritizer.components.schemas import (
     Experiment,
     Matrix,
@@ -259,3 +258,25 @@ def save_db_objects(db_engine, db_objects):
             type_of_object=type_of_object
     )) as pipe:
         postgres_copy.copy_from(pipe, type_of_object, db_engine, format="csv")
+
+
+@contextmanager
+def scoped_session(db_engine):
+    """Provide a transactional scope around a series of operations."""
+    session = Session(bind=db_engine)
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@contextmanager
+def get_for_update(db_engine, orm_class, primary_key):
+    with scoped_session(db_engine) as session:
+        obj = session.query(orm_class).get(primary_key)
+        yield obj
+        session.merge(obj)

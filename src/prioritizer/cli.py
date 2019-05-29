@@ -3,7 +3,8 @@ import random
 import yaml
 import click
 
-from prioritizer.components.experiment import Experiment
+from prioritizer.components.schemas import upgrade_db
+from prioritizer.components.single import SingleThreadedExperiment
 from prioritizer.components.db import create_engine
 
 
@@ -24,12 +25,15 @@ class Prioritizer():
         db_url = 'postgresql://{}:{}@localhost:5432/{}'.format(db_u,
                                                                db_p,
                                                                db_n )
-        print(db_url)
-        experiment = Experiment(
+
+        engine = create_engine(db_url)
+        upgrade_db(db_engine=engine)
+        experiment = SingleThreadedExperiment(
             config=loaded_config,
-            db_engine=create_engine(db_url),
+            db_engine=engine,
             project_path='/output'
         )
+        experiment.run()
 
-# if __name__ == '__main__':
-#         run()
+if __name__ == '__main__':
+        run()
