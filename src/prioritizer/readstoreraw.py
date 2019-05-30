@@ -2,7 +2,7 @@ import click
 import psycopg2 as pg
 import csv
 
-TABLES = ['raw', 'projects']
+TABLES = ['raw', 'raw_projects']
 IDXS = []
 CREATE_COMMANDS = [
             """
@@ -10,13 +10,13 @@ CREATE_COMMANDS = [
                 projectid VARCHAR(50) PRIMARY KEY UNIQUE,
                 teacher_acctid VARCHAR(50),
                 schoolid VARCHAR(50),
-                school_ncesid VARCHAR(50),
+                school_ncesid DECIMAL,
                 school_latitude DECIMAL,
                 school_longitude DECIMAL,
                 school_city VARCHAR(50),
                 school_state VARCHAR(2),
                 school_metro VARCHAR(50),
-                school_district VARCHAR(50),
+                school_district VARCHAR(200),
                 school_county VARCHAR(50),
                 school_charter VARCHAR(50),
                 school_magnet VARCHAR(50),
@@ -28,7 +28,7 @@ CREATE_COMMANDS = [
                 resource_type VARCHAR(50),
                 poverty_level VARCHAR(50),
                 grade_level VARCHAR(50),
-                total_price_including_optional_support VARCHAR(50),
+                total_price_including_optional_support DECIMAL,
                 students_reached INT,
                 eligible_double_your_impact_match VARCHAR(2),
                 date_posted TIMESTAMP,
@@ -36,31 +36,31 @@ CREATE_COMMANDS = [
                 )
             """,
             """
-            CREATE TABLE projects (
+            CREATE TABLE raw_projects (
                 projectid VARCHAR(50) PRIMARY KEY UNIQUE,
                 teacher_acctid VARCHAR(50),
-                schoolid VARCHAR(50),
-                school_ncesid VARCHAR(50),
-                school_latitude DECIMAL,
-                school_longitude DECIMAL,
+                -- schoolid VARCHAR(50),
+                -- school_ncesid DECIMAL,
+                -- school_latitude DECIMAL,
+                -- school_longitude DECIMAL,
                 school_city VARCHAR(50),
                 school_state VARCHAR(2),
-                school_metro VARCHAR(50),
-                school_district VARCHAR(50),
+                -- school_metro VARCHAR(50),
+                -- school_district VARCHAR(200),
                 school_county VARCHAR(50),
-                school_charter VARCHAR(50),
-                school_magnet VARCHAR(50),
-                teacher_prefix VARCHAR(50),
+                -- school_charter VARCHAR(50),
+                -- school_magnet VARCHAR(50),
+                -- teacher_prefix VARCHAR(50),
                 primary_focus_subject VARCHAR(50),
-                primary_focus_area VARCHAR(50),
-                secondary_focus_subject VARCHAR(50),
-                secondary_focus_area VARCHAR(50),
+                -- primary_focus_area VARCHAR(50),
+                -- secondary_focus_subject VARCHAR(50),
+                -- secondary_focus_area VARCHAR(50),
                 resource_type VARCHAR(50),
                 poverty_level VARCHAR(50),
                 grade_level VARCHAR(50),
-                total_price_including_optional_support VARCHAR(50),
+                total_price_including_optional_support DECIMAL,
                 students_reached INT,
-                eligible_double_your_impact_match VARCHAR(2),
+                -- eligible_double_your_impact_match VARCHAR(2),
                 date_posted TIMESTAMP,
                 datefullyfunded TIMESTAMP
                 )
@@ -68,8 +68,8 @@ CREATE_COMMANDS = [
             ]
 BULK_INSERTS = [
     """
-    INSERT INTO projects (projectid,teacher_acctid,schoolid,school_ncesid,school_latitude,school_longitude,school_city,school_state,school_metro,school_district,school_county,school_charter,school_magnet,teacher_prefix,primary_focus_subject,primary_focus_area,secondary_focus_subject,secondary_focus_area,resource_type,poverty_level,grade_level,total_price_including_optional_support,students_reached,eligible_double_your_impact_match,date_posted,datefullyfunded)
-    SELECT DISTINCT projectid,teacher_acctid,schoolid,school_ncesid,school_latitude,school_longitude,school_city,school_state,school_metro,school_district,school_county,school_charter,school_magnet,teacher_prefix,primary_focus_subject,primary_focus_area,secondary_focus_subject,secondary_focus_area,resource_type,poverty_level,grade_level,total_price_including_optional_support,students_reached,eligible_double_your_impact_match,date_posted,datefullyfunded
+    INSERT INTO raw_projects (projectid,teacher_acctid,school_city,school_state,school_county,primary_focus_subject,resource_type,poverty_level,grade_level,total_price_including_optional_support,students_reached,date_posted,datefullyfunded)
+    SELECT DISTINCT projectid,teacher_acctid,school_city,school_state,school_county,primary_focus_subject,resource_type,poverty_level,grade_level,total_price_including_optional_support,students_reached,date_posted,datefullyfunded
     FROM raw;
     """]
 
