@@ -44,6 +44,7 @@ class EntityDateTableGenerator(object):
             self.entity_date_table_name,
             as_of_dates,
         )
+        print(as_of_dates)
         self._create_and_populate_entity_date_table(as_of_dates)
         self.db_engine.execute(
             "create index on {} (entity_id, as_of_date)".format(self.entity_date_table_name)
@@ -68,7 +69,7 @@ class EntityDateTableGenerator(object):
             self.db_engine.execute(f"drop table if exists {self.entity_date_table_name}")
             self.db_engine.execute(
                 f"""create table {self.entity_date_table_name} (
-                    entity_id integer,
+                    entity_id varchar,
                     as_of_date timestamp,
                     {DEFAULT_ACTIVE_STATE} boolean
                 )
@@ -104,8 +105,9 @@ class EntityDateTableGenerator(object):
                 logging.info("Since >0 entity_date rows found for date %s, skipping", as_of_date)
                 continue
             dated_query = self.query.format(as_of_date=formatted_date)
+            print(dated_query)
             full_query = f"""insert into {self.entity_date_table_name}
-                select q.entity_id, '{formatted_date}'::timestamp, true
+                select cast(q.entity_id as varchar), '{formatted_date}'::timestamp, true
                 from ({dated_query}) q
                 group by 1, 2, 3
             """

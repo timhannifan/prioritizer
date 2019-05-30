@@ -3,8 +3,8 @@ drop table if exists cleaned.projects cascade;
 create table cleaned.projects as (
         with cleaned as (
             select
-                projectid::varchar(50),
-                teacher_acctid::varchar(50),
+                projectid::varchar(50) as event_id,
+                teacher_acctid::varchar as entity_id,
                 replace(regexp_replace(btrim(lower(school_city)), '\s{2,}|,|\.',''), $$'$$,'') as city,
                 btrim(lower(school_state)) as state,
                 replace(regexp_replace(btrim(lower(school_county)), '\s{2,}|,|\.',''), $$'$$,'') as county,
@@ -26,7 +26,7 @@ create table cleaned.projects as (
                 end as grade,
                 total_price_including_optional_support::decimal as price,
                 students_reached::integer as reach,
-                date_posted::timestamp,
+                date_posted::timestamp as date,
                 case
                     when DATE_PART('day', datefullyfunded - date_posted) >= 60 then 1
                     else 0

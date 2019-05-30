@@ -1,8 +1,14 @@
 import sys
 import random
 import logging
+from timeout import timeout
+from cached_property import cached_property
+
 from prioritizer.components.timechop import Timechop
-from prioritizer.components.entity_date_table_generators import EntityDateTableGenerator
+from prioritizer.components.schemas import schema
+from prioritizer.components.entity_date_table_generators import (EntityDateTableGenerator,
+    EntityDateTableGeneratorNoOp
+)
 
 from prioritizer.utils.dbutil import (
     filename_friendly_hash,
@@ -31,6 +37,7 @@ from prioritizer.components.storage import (
 from prioritizer.components.modeler import Subsetter, ModelTrainer, ModelGrouper, Predictor, ModelTrainTester
 from prioritizer.components import schemas
 from prioritizer.components.validate import ExperimentValidator
+from prioritizer.utils.dbutil import get_for_update
 # from prioritizer.components.modeler import Subsetter
     # ModelEvaluator,
     # # Predictor,
@@ -118,6 +125,7 @@ class Experiment():
         logging.info("Generate profiling stats? (profile option): %s", self.profile)
 
         self.cleanup =True
+        self.cleanup_timeout = 60
         logging.info(
             "cleanup is set to True, so intermediate tables (labels and cohort) "
             "will be removed after matrix creation and subset tables will be "
@@ -283,9 +291,9 @@ class Experiment():
         )
 
     def get_for_update(self):
-        return get_for_update(self.db_engine, results_schema.Experiment, self.experiment_hash)
+        return get_for_update(self.db_engine, schema.Experiment, self.experiment_hash)
 
-    # @cachedproperty
+    @cached_property
     def split_definitions(self):
         """Temporal splits based on the experiment's configuration
 
@@ -344,7 +352,7 @@ class Experiment():
             experiment.time_splits = len(split_definitions)
         return split_definitions
 
-    # @cachedproperty
+    @cached_property
     def all_as_of_times(self):
         """All 'as of times' in experiment config
 
@@ -383,7 +391,7 @@ class Experiment():
             experiment.as_of_times = len(distinct_as_of_times)
         return distinct_as_of_times
 
-    # @cachedproperty
+    @cached_property
     def collate_aggregations(self):
         """Collation of ``Aggregation`` objects used by this experiment.
 
@@ -403,7 +411,7 @@ class Experiment():
             experiment.feature_blocks = len(aggregations)
         return aggregations
 
-    # @cachedproperty
+    @cached_property
     def feature_aggregation_table_tasks(self):
         """All feature table query tasks specified by this
         ``Experiment``.
@@ -421,7 +429,7 @@ class Experiment():
             self.collate_aggregations, task_type="aggregation"
         )
 
-    # @cachedproperty
+    @cached_property
     def feature_imputation_table_tasks(self):
         """All feature imputation query tasks specified by this
         ``Experiment``.
@@ -439,7 +447,7 @@ class Experiment():
             self.collate_aggregations, task_type="imputation"
         )
 
-    # @cachedproperty
+    @cached_property
     def master_feature_dictionary(self):
         """All possible features found in the database. Not all features
         will necessarily end up in matrices
@@ -459,7 +467,7 @@ class Experiment():
             experiment.total_features = sum(1 for _feature in itertools.chain.from_iterable(result.values()))
         return result
 
-    # @cachedproperty
+    @cached_property
     def feature_dicts(self):
         """Feature dictionaries, representing the feature tables and
         columns configured in this experiment after computing feature
@@ -476,7 +484,7 @@ class Experiment():
             experiment.feature_group_combinations = len(combinations)
         return combinations
 
-    # @cachedproperty
+    @cached_property
     def matrix_build_tasks(self):
         """Tasks for all matrices that need to be built as a part of
         this Experiment.
@@ -499,7 +507,7 @@ class Experiment():
         self.full_matrix_definitions = updated_split_definitions
         return matrix_build_tasks
 
-    # @cachedproperty
+    @cached_property
     def full_matrix_definitions(self):
         """Full matrix definitions
 
@@ -526,7 +534,7 @@ class Experiment():
             )
         )
 
-    # @cachedproperty
+    # @cached_property
     def subset_tasks(self):
         return self.subsetter.generate_tasks(self.subsets)
 
@@ -720,15 +728,16 @@ class Experiment():
 
     def clean_up_matrix_building_tables(self):
         logging.info("Cleaning up cohort and labels tables")
-        with timeout(self.cleanup_timeout):
-            self.cohort_table_generator.clean_up()
-            self.label_generator.clean_up(self.labels_table_name)
+        # with timeout(self.cleanup_timeout):
+        self.cohort_table_generator.clean_up()
+        self.label_generator.clean_up(self.labels_table_name)
 
     def clean_up_subset_tables(self):
         logging.info("Cleaning up cohort and labels tables")
-        with timeout(self.cleanup_timeout):
-            for subset_task in self.subset_tasks:
-                subset_task["subset_table_generator"].clean_up()
+        # with timeout(self.cleanup_timeout):
+
+        for subset_task in self.subset_tasks:
+            subset_task["subset_table_generator"].clean_up()
 
     def _run_profile(self):
         cp = cProfile.Profile()

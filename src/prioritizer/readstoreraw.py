@@ -8,7 +8,7 @@ CREATE_COMMANDS = [
             """
             CREATE TABLE raw (
                 projectid VARCHAR(50) PRIMARY KEY UNIQUE,
-                teacher_acctid VARCHAR(50),
+                teacher_acctid VARCHAR,
                 schoolid VARCHAR(50),
                 school_ncesid DECIMAL,
                 school_latitude DECIMAL,
@@ -38,7 +38,7 @@ CREATE_COMMANDS = [
             """
             CREATE TABLE raw_projects (
                 projectid VARCHAR(50) PRIMARY KEY UNIQUE,
-                teacher_acctid VARCHAR(50),
+                teacher_acctid VARCHAR,
                 -- schoolid VARCHAR(50),
                 -- school_ncesid DECIMAL,
                 -- school_latitude DECIMAL,
